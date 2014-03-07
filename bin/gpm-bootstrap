@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+
+set -eu
+
+usage() {
+cat << EOF
+SYNOPSIS
+
+      gpm-bootstrap is a [gpm](https://github.com/pote/gpm) plugin that provides
+      the ability to bootstrap a Go project, it install all dependencies and 
+      creates a Godeps file including the latest version - latest tag or revision -
+      for each pacakge.
+
+
+USAGE
+      $ gpm bootstrap           # Downloads all external top-level packages required by
+                                # your application and generates a Godeps file with their
+                                # latest tags or revisions.
+      $ gpm bootstrap version   # Prints version information for the plugin.
+      $ gpm bootstrap help      # Prints this message.
+EOF
+}
+
+bootstrap() {
+  echo ">> Installing dependencies."
+  go get -d
+  dependencies=`go list -f '{{join .Deps "\n"}}' |
+                xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'`
+
+  while read package; do
+    (
+      version=`find_last_tag_or_HEAD "$package"`
+      [ -n "$version" ] && (
+        echo ">> Adding package "$package" version "$version" to Godeps."
+        echo ""$package" "$version"" >> Godeps
+        set_package_to_version $package $version
+      )
+    ) &
+  done < <(echo "$dependencies")
+
+  wait
+  echo ">> All Done."
+}
+
+## Sets a given package to a given revision using
+## the appropriate VCS.
+#
+set_package_to_version() {
+  cd "${GOPATH%%:*}/src/${1%%/...}"
+
+  ## Avoid multiple processes messing with the same
+  ## package at the same time.
+  [[ -e "$PWD/.git/index.lock" ||
+  -e "$PWD/.hg/store/lock" ||
+  -e "$PWD/.bzr/checkout/lock" ]] && wait
+
+  [ -d .hg ]  && hg update    -q      "$2"
+  [ -d .git ] && git checkout -q      "$2"
+  [ -d .bzr ] && bzr revert   -q -r   "$2"
+}
+
+## Returns the latest tag (or, failing that latest revision)
+## for an installed package.
+#
+find_last_tag_or_HEAD() {
+  cd "${GOPATH%%:*}/src/${1%%/...}"
+
+  ## If no repo file is found it means we are inside a repo's
+  ## subdirectory tree, we can just ignore this package.
+  [ ! -d .git ] && [ ! -d .bzr ] && [ ! -d .hg ] &&
+    echo ">> Ignored $1, not top-level package." 1>&2 && return
+
+  [ -d .git ] && (
+    # FIXME: there should be a better way,  but git tags returns in alphabetical order.
+    version=`git tag |
+            xargs -I@ git log --format=format:"%ai @%n" -1 @ |
+            sort |
+            awk '{print $4}' |
+            tail -1`
+
+
+    [ -n "$version" ] && echo "$version" && return
+
+    version=`git log -n 1 --pretty=oneline | cut -d " " -f 1`
+    echo ">> No tags on package "$1", setting version to latest revision." 1>&2
+    echo "$version" && return
+  )
+
+  [ -d .bzr ] && (
+    version=`bzr tags | tail -1 | cut -d " " -f 1`
+    [ -n "$version" ] && echo "$version" && return
+
+    version=`bzr log -r-1 --log-format=line | cut -d ":" -f 1`
+    echo ">> No tags on package "$1", setting version to latest revision." 1>&2
+    echo "$version" && return
+  )
+
+  [ -d .hg ] && (
+    version=`hg parents --template "{latesttag}"`
+
+    [ "$version" != "null" ] && echo "$version" && return
+
+    version=`hg log --template "{node}" -l 1`
+    echo ">> No tags on package "$1", setting version to latest_revision." 1>&2
+    echo "$version" && return
+  )
+
+  echo " "
+}
+
+
+## Execution
+
+case "${1:-"bootstrap"}" in
+  "bootstrap")
+    [[ -f "Godeps" ]] &&
+      echo ">> A Godeps file exists within this directory." && exit 1
+    bootstrap
+    ;;
+  "version")
+    echo ">> gpm-bootstrap v0.0.1"
+    ;;
+  "help")
+    usage
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
