@@ -2,7 +2,7 @@
 
 gpm-bootstrap is a plugin for [gpm](https://github.com/pote/gpm), the Go Package Manager. It provides a simple way to get started with dependency versioning tracking on your Go projects by creating a `Godeps` file with all your dependencies set to their latest versions.
 
-Requires [gpm v1.1.0](https://github.com/pote/gpm/releases/tag/v1.1.0), which introduces gpm plugins.
+Requires [gpm v1.1.1](https://github.com/pote/gpm/releases/tag/v1.1.1), which introduces gpm plugins.
 
 ## Installation
 
