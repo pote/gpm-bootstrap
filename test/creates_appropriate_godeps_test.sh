@@ -15,7 +15,8 @@ func main() {
 EOF
 
 assert_raises "../bin/gpm-bootstrap"
-assert "cat Godeps" "github.com/pote/gpm-testing-package v6.2"
+assert_raises "grep -q 'github.com/pote/gpm-testing-package v6.2' Godeps"
+assert "go run main.go" "v6.2"
 
 rm Godeps
 rm main.go
