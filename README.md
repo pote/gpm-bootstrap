@@ -6,6 +6,14 @@ Requires [gpm v1.1.1](https://github.com/pote/gpm/releases/tag/v1.1.1) which int
 
 ## Installation
 
+### Via Homebrew
+
+```bash
+$ brew tap pote/gpm_plugins
+$ brew install gpm-bootstrap
+```
+
+### Manual on *nix
 ```bash
 $ git clone git@github.com:pote/gpm-bootsrap.git && cd gpm-bootstrap
 $ ./configure
