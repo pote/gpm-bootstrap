@@ -15,7 +15,7 @@ $ brew install gpm-bootstrap
 
 ### Manual on *nix
 ```bash
-$ git clone git@github.com:pote/gpm-bootsrap.git && cd gpm-bootstrap
+$ git clone git@github.com:pote/gpm-bootstrap.git && cd gpm-bootstrap
 $ ./configure
 $ make install
 ```
