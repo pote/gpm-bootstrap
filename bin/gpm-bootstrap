@@ -24,7 +24,7 @@ EOF
 bootstrap() {
   echo ">> Installing dependencies."
   go get -d
-  dependencies=`go list -f '{{join .Deps "\n"}}' |
+  dependencies=`go list -f '{{join .Deps "\n"}}' ./... |
                 xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}'`
 
   while read package; do
